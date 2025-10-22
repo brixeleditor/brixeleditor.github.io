@@ -1,0 +1,616 @@
+/* 
+ * BRIXEL Web IDE 통합 스타일시트
+ * 기존 index.html의 <style> 섹션에서 분리
+ * 
+ * HTML 구조:
+ * .ide-container
+ *   ├── .toolbar (상단 툴바)
+ *   ├── .editor-area (메인 에디터 영역)
+ *   └── .control-panel (오른쪽 컨트롤 패널)
+ */
+
+/* ======================================================================================== */
+/* 1. 전역 변수 및 기본 설정                                                                    */
+/* ======================================================================================== */
+
+:root {
+    --primary-color: #667eea;
+    --secondary-color: #764ba2;
+    --success-color: #28a745;
+    --esp32-color: #e74c3c;
+    --pico-color: #9b59b6;
+    --warning-color: #ffc107;
+}
+
+* { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+}
+
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(90deg, #f13333 0%, #02cef7 100%);
+    height: 100vh;
+    overflow: hidden;
+    color: #333;
+}
+
+/* ======================================================================================== */
+/* 2. 메인 컨테이너 레이아웃 (.ide-container)                                                    */
+/* ======================================================================================== */
+
+.ide-container {
+    display: grid;
+    grid-template-columns: 1fr 320px;  /* 왼쪽: 에디터 영역, 오른쪽: 컨트롤 패널 (320px 고정) */
+    grid-template-rows: 60px 1fr;      /* 상단: 툴바 (60px 고정), 하단: 메인 영역 */
+    height: 100vh;
+    gap: 10px;
+    padding: 10px;
+}
+
+/* ======================================================================================== */
+/* 3. 상단 툴바 (.toolbar)                                                                   */
+/*    HTML: <div class="toolbar">...</div>                                                */
+/* ======================================================================================== */
+
+.toolbar {
+    grid-column: 1 / -1;  /* 전체 너비에 걸쳐 배치 */
+    background: #fff;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 25px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+}
+
+/* 3-1. 툴바 왼쪽 영역 (.toolbar-left) */
+/* HTML: <div class="toolbar-left">...</div> */
+.toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+}
+
+/* 3-2. 메인 타이틀 (h1) */
+/* HTML: <h1 data-i18n="mainTitle">...</h1> */
+.toolbar h1 {
+    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 28px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* 3-3. 모드 토글 버튼 (.mode-toggle) */
+/* HTML: <div class="mode-toggle">...</div> */
+.mode-toggle {
+    display: flex;
+    background: #f1f3f4;
+    border-radius: 25px;
+    padding: 4px;
+    gap: 4px;
+}
+
+.mode-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 20px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    color: #666;
+}
+
+.mode-btn.active {
+    background: var(--primary-color);
+    color: white;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+/* 3-4. 툴바 오른쪽 버튼들 (.toolbar-buttons) */
+/* HTML: <div class="toolbar-buttons">...</div> */
+.toolbar-buttons {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.btn-compile { 
+    background: linear-gradient(45deg, #f39c12, #e67e22); 
+    color: white; 
+}
+
+.btn-upload { 
+    background: linear-gradient(45deg, var(--success-color), #1e7e34); 
+    color: white; 
+}
+
+.btn:disabled { 
+    background: #bdc3c7; 
+    cursor: not-allowed; 
+    opacity: 0.6; 
+}
+
+.btn:hover:not(:disabled) { 
+    transform: translateY(-2px); 
+}
+
+/* ======================================================================================== */
+/* 4. 메인 에디터 영역 (.editor-area)                                                         */
+/*    HTML: <div class="editor-area" id="editorArea">...</div>                           */
+/* ======================================================================================== */
+
+.editor-area {
+    display: grid;
+    grid-template-columns: 1fr; /* 항상 1열 레이아웃을 사용하도록 변경 */
+    gap: 15px;
+    background: #fff;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+}
+
+/* 텍스트 모드가 아닐 때(.text-mode 클래스가 없을 때) 코드 패널 숨기기 */
+.editor-area:not(.text-mode) .code-panel {
+    display: none;
+}
+
+/* 4-1. 블록코딩 패널 (.blockly-panel) */
+/* HTML: <div class="blockly-panel" id="blocklyPanel">...</div> */
+.blockly-panel {
+    display: flex;
+    flex-direction: column;
+    background: #f8f9fa;
+}
+
+.blockly-panel.hidden {
+    display: none;
+}
+
+.blockly-header {
+    background: var(--primary-color);
+    color: white;
+    padding: 15px 20px;
+    font-weight: 600;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#blocklyDiv {
+    flex: 1;
+    min-height: 0;
+}
+
+/* 4-2. 코드 표시/편집 패널 (.code-panel) */
+/* HTML: <div class="code-panel">...</div> */
+.code-panel {
+    display: flex;
+    flex-direction: column;
+    background: #1e1e1e;
+}
+
+.code-header {
+    background: #252526;
+    color: #ccc;
+    padding: 15px 20px;
+    font-weight: 600;
+    border-bottom: 1px solid #3c3c3c;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.copy-btn {
+    background: #0e639c;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background-color 0.2s;
+}
+
+.copy-btn:hover {
+    background: #1579ba;
+}
+
+.code-content {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+/* 4-2-1. 코드 미리보기 영역 (#codePreview) */
+/* HTML: <pre id="codePreview">...</pre> */
+#codePreview {
+    color: #d4d4d4;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    padding: 20px;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    height: 100%;
+    overflow-y: auto;
+    background: #1e1e1e;
+}
+
+/* 4-2-2. Monaco 에디터 영역 (#monacoEditor) */
+/* HTML: <div id="monacoEditor" class="hidden"></div> */
+#monacoEditor {
+    height: 100%;
+    width: 100%;
+}
+
+/* ======================================================================================== */
+/* 5. Monaco 에디터 RTL 언어 대응                                                              */
+/* ======================================================================================== */
+
+/* Monaco 에디터는 항상 LTR 방향 유지 */
+#monacoEditor,
+#monacoEditor .monaco-editor,
+#monacoEditor .monaco-editor .overflow-guard,
+#monacoEditor .monaco-editor .monaco-scrollable-element {
+    direction: ltr !important;
+    text-align: left !important;
+    unicode-bidi: embed !important;
+}
+
+/* RTL 언어에서도 Monaco 에디터 위치 고정 */
+[dir="rtl"] #monacoEditor,
+.rtl #monacoEditor {
+    direction: ltr !important;
+    text-align: left !important;
+}
+
+/* 코드 영역 자체도 LTR 방향 고정 */
+#monacoEditor .monaco-editor .view-lines,
+#monacoEditor .monaco-editor .view-line,
+#monacoEditor .monaco-editor .view-line span {
+    direction: ltr !important;
+    text-align: left !important;
+    unicode-bidi: embed !important;
+}
+
+/* Monaco 에디터 컨테이너 강제 설정 */
+#monacoEditor .monaco-editor .monaco-scrollable-element .monaco-editor-background {
+    direction: ltr !important;
+}
+
+/* Monaco 에디터 텍스트 입력 영역 */
+#monacoEditor .monaco-editor textarea {
+    direction: ltr !important;
+    text-align: left !important;
+}
+
+/* ======================================================================================== */
+/* 6. 우측 컨트롤 패널 (.control-panel)                                                       */
+/*    HTML: <div class="control-panel">...</div>                                         */
+/* ======================================================================================== */
+
+.control-panel {
+    background: #fff;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+}
+
+/* 6-1. 패널 섹션 공통 스타일 (.panel-section) */
+/* HTML: <div class="panel-section">...</div> */
+.panel-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 12px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.panel-section h3 {
+    font-size: 14px;
+    margin-bottom: 12px;
+    color: var(--primary-color);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 6-2. 폼 요소 공통 스타일 (.form-row) */
+/* HTML: <div class="form-row">...</div> */
+.form-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+.form-row:last-child {
+    margin-bottom: 0;
+}
+
+.form-row label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #666;
+    min-width: 50px;
+}
+
+.form-row select, 
+.form-row input[type="text"] {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+    background: white;
+}
+
+.form-row select:focus,
+.form-row input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+.form-row button {
+    padding: 8px 16px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.form-row button:hover {
+    background: var(--secondary-color);
+    transform: translateY(-1px);
+}
+
+.form-row button.success {
+    background: var(--success-color);
+}
+
+.form-row button.success:hover {
+    background: #218838;
+}
+
+.form-row button.icon-btn {
+    padding: 8px;
+    min-width: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 6-3. 특수 컨트롤 스타일 */
+.port-selector, .download-selector {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.language-status {
+    font-size: 10px;
+    color: var(--success-color);
+    margin-left: 8px;
+    padding: 2px 6px;
+    background: rgba(40, 167, 69, 0.1);
+    border-radius: 8px;
+}
+
+/* ======================================================================================== */
+/* 7. 보드 표시기 (.board-indicator)                                                          */
+/*    HTML: <span class="board-indicator" id="boardIndicator">UNO</span>                 */
+/* ======================================================================================== */
+
+.board-indicator {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 11px;
+    font-weight: bold;
+    margin-left: 10px;
+    color: white;
+}
+
+.board-arduino { 
+    background-color: #17a2b8; 
+}
+
+.board-esp32 { 
+    background-color: var(--esp32-color); 
+}
+
+.board-pico { 
+    background-color: var(--pico-color); 
+}
+
+/* ======================================================================================== */
+/* 8. PC 에이전트 연결 패널 (.agent-connection-panel)                                          */
+/*    HTML: <div class="agent-connection-panel">...</div>                                */
+/* ======================================================================================== */
+
+/* 이 스타일은 index.html의 <style> 태그에 정의되어 있음 */
+
+/* ======================================================================================== */
+/* 9. 실시간 로그 콘솔 (.console-panel)                                                        */
+/*    HTML: <div class="console-panel">...</div> (오른쪽 패널 내부)                           */
+/* ======================================================================================== */
+
+.console-panel {
+    background: #2c3e50;
+    border-radius: 10px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    min-height: 200px;
+    max-height: 300px;
+}
+
+.console-header {
+    color: #ecf0f1;
+    margin-bottom: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.console-output {
+    flex: 1;
+    background: #1a252f;
+    color: #00ff41;
+    border-radius: 8px;
+    padding: 12px;
+    font-family: Monaco, monospace;
+    font-size: 11px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    min-height: 150px;
+}
+
+/* ======================================================================================== */
+/* 10. 유틸리티 클래스                                                                        */
+/* ======================================================================================== */
+
+.hidden { 
+    display: none !important; 
+}
+
+/* ======================================================================================== */
+/* 11. 로딩 오버레이 (.loading-overlay)                                                       */
+/*     HTML: <div id="loadingOverlay" class="loading-overlay">...</div>                  */
+/* ======================================================================================== */
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    color: white;
+    font-size: 18px;
+}
+
+.loading-content {
+    text-align: center;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #333;
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ======================================================================================== */
+/* 12. Blockly 관련 스타일 조정                                                                */
+/* ======================================================================================== */
+
+.blocklyToolboxDiv .blocklyTreeRow { 
+    margin: 8px 0 !important; 
+    padding: 8px !important; 
+}
+
+.blocklyToolboxDiv .blocklyToolboxCategory { 
+    margin-bottom: 8px !important; 
+}
+
+/* ======================================================================================== */
+/* 13. RTL 언어 지원                                                                         */
+/* ======================================================================================== */
+
+.rtl { 
+    direction: rtl; 
+}
+
+.rtl .code-panel { 
+    order: -1; 
+}
+
+/* ======================================================================================== */
+/* 14. 반응형 디자인 (미디어 쿼리)                                                              */
+/* ======================================================================================== */
+
+@media (max-width: 1200px) {
+    .ide-container {
+        grid-template-columns: 1fr 280px;
+    }
+}
+
+@media (max-width: 1024px) {
+    .ide-container {
+        display: flex;
+        flex-direction: column;
+        height: auto;
+        overflow-y: auto;
+    }
+    
+    .toolbar-left {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .editor-area {
+        min-height: 500px;
+        order: 1;
+    }
+    
+    .control-panel {
+        order: 2;
+        max-height: 600px;
+    }
+    
+    .console-panel {
+        max-height: 200px;
+        min-height: 150px;
+    }
+}

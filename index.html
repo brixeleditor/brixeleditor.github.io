@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="mainTitle">블록코딩 웹에디터 for 아두이노</title>
+    <link rel="icon" href="favicon.ico">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-PX4LFJ1M1Z"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-PX4LFJ1M1Z');
+    </script>
+    	
+    <script type="text/javascript" src="//wcs.pstatic.net/wcslog.js"></script>
+    <script type="text/javascript">
+    if(!wcs_add) var wcs_add = {};
+    wcs_add["wa"] = "132d13e13a2a880";
+    if(window.wcs) {
+    wcs_do();
+    }
+    </script>
+    
+    <!-- 외부 라이브러리 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/blockly/12.2.0/blockly_compressed.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/blockly/12.2.0/blocks_compressed.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/blockly/12.2.0/javascript_compressed.js"></script>
+    
+    <!-- Monaco Editor -->
+    <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.0/min/vs/editor/editor.main.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.0/min/vs/loader.min.js"></script>
+    
+    <!-- 기존 블록코딩 관련 스크립트 -->
+    <script src="translations/i18n.js"></script>
+    <script src="brixel/brixel_core.js"></script>
+    <script src="brixel/brixel_blocks_definitions.js"></script>
+    <script src="brixel/brixel_blocks_code_generators.js"></script>
+    <script src="brixel/brixel_utils.js"></script>
+    <script src="brixel/brixel_toolbox.js"></script>
+    
+    <!-- 분리된 CSS (RTL 대응 포함) -->
+    <link rel="stylesheet" href="ide-styles.css">
+    
+    <style>
+        /* PC 에이전트 연결 패널 스타일 */
+        .agent-connection-panel {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 2px solid #dee2e6;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .connection-status {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .connection-status.connected {
+            color: #28a745;
+        }
+        
+        .connection-status.disconnected {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <!-- 로딩 오버레이 -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div id="loadingText" data-i18n="loadingText">정적 웹 IDE 초기화 중...</div>
+        </div>
+    </div>
+    
+    <div class="ide-container">
+        <!-- 상단 툴바 -->
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <h1 data-i18n="mainTitle">Brixel 웹에디터 for Arduino 
+                    <span class="board-indicator" id="boardIndicator">UNO</span>
+                </h1>
+                <div class="mode-toggle">
+                    <button class="mode-btn active" id="blockModeBtn" data-mode="block" data-i18n="blockModeBtn">블록코딩</button>
+                    <button class="mode-btn" id="textModeBtn" data-mode="text" data-i18n="textModeBtn">텍스트코딩</button>
+                </div>
+            </div>
+            <div class="toolbar-buttons">
+                <button class="btn btn-compile" id="compileBtn" disabled data-i18n="compileBtn">⚙️ 코드 컴파일</button>
+                <button class="btn btn-upload" id="uploadBtn" disabled data-i18n="uploadBtn">📤 보드에 업로드</button>
+            </div>
+        </div>
+        
+        <!-- 메인 에디터 영역 -->
+        <div class="editor-area" id="editorArea">
+            <!-- 블록코딩 패널 -->
+            <div class="blockly-panel" id="blocklyPanel">
+                <div class="blockly-header" data-i18n="blocklyHeaderTitle">
+                    🧩 브릭셀 블록 코딩 에디터
+                </div>
+                <div id="blocklyDiv"></div>
+            </div>
+            
+            <!-- 코드 표시/편집 패널 -->
+            <div class="code-panel">
+                <div class="code-header">
+                    <span id="codeTitle" data-i18n="codeTitle">📄 실시간 Arduino C++ 코드</span>
+                    <button class="copy-btn" id="copyBtn" data-i18n="copyBtn">📋 복사</button>
+                </div>
+                <div class="code-content">
+                    <!-- 블록코딩 모드: 생성된 코드 표시 -->
+                    <pre id="codePreview" data-i18n="codePreview_initial">// 블록을 배치하면 여기에 코드가 생성됩니다.</pre>
+                    
+                    <!-- 텍스트 모드: 모나코 에디터 (RTL 대응 완료) -->
+                    <div id="monacoEditor" class="hidden"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 우측 컨트롤 패널 -->
+        <div class="control-panel">
+            <!-- 파일 관리 -->
+            <div class="panel-section">
+                <h3 data-i18n="sectionTitleLanguage">🌐 언어 및 파일 관리</h3>
+                <div class="form-row">
+                    <label data-i18n="labelLanguage">언어:</label>
+                    <select id="languageSelect">
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label data-i18n="labelFilename">파일명:</label>
+                    <input type="text" id="fileNameInput" data-i18n-placeholder="fileNameInput_placeholder" placeholder="arduino_project">
+                </div>
+                <div class="form-row">
+                    <button id="saveBtn" class="success" data-i18n="saveBtn">💾 저장</button>
+                    <button id="loadBtn" data-i18n="loadBtn">📂 불러오기</button>
+                    <input type="file" id="loadFile" style="display: none;" accept=".xml,.ino">
+                </div>
+            </div>
+
+            <!-- 보드 선택 -->
+            <div class="panel-section">
+                <h3 data-i18n="sectionTitleBoard">🎯 보드 선택</h3>
+                <div class="form-row">
+                    <select id="boardSelect">
+                        <optgroup data-i18n="boardGroupArduino_label" label="🔵 Arduino 계열">
+                            <option value="uno" data-i18n="boardUno">Arduino Uno</option>
+                            <option value="nano" data-i18n="boardNano">Arduino Nano</option>
+                            <option value="mega" data-i18n="boardMega">Arduino Mega</option>
+                        </optgroup>
+                        <optgroup data-i18n="boardGroupEsp32_label" label="🟠 ESP32 계열">
+                            <option value="esp32" data-i18n="boardEsp32">ESP32 Dev Module</option>
+                            <option value="esp32s2" data-i18n="boardEsp32s2">ESP32-S2</option>
+                            <option value="esp32c3" data-i18n="boardEsp32c3">ESP32-C3</option>
+                            <option value="esp32s3" data-i18n="boardEsp32s3">ESP32-S3</option>
+                        </optgroup>
+                        <optgroup data-i18n="boardGroupPico_label" label="🟣 Raspberry Pi Pico">
+                            <option value="pico" data-i18n="boardPico">Raspberry Pi Pico</option>
+                            <option value="picow" data-i18n="boardPicow">Raspberry Pi Pico W</option>
+                        </optgroup>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- 업로드 포트 -->
+            <div class="panel-section">
+                <h3 data-i18n="sectionTitlePort">🔌 업로드 포트</h3>
+                <div class="port-selector">
+                    <select id="portSelect" disabled>
+                        <option value="" data-i18n="portAutoSelect">포트를 새로고침 하세요.</option>
+                    </select>
+                    <button id="refreshPortsBtn" class="icon-btn" data-i18n="refreshPortsBtn_title" title="포트 목록 새로고침" disabled>🔄</button>
+                </div>
+                <div style="font-size: 11px; color: #6c757d; margin-top: 5px;" data-i18n="portDisabledMessage">
+                    * PC 에이전트 연결 후 사용 가능
+                </div>
+            </div>
+            
+            <!-- 단순화된 PC 에이전트 연결 상태 -->
+            <div class="panel-section">
+                <h3 data-i18n="sectionTitleConnection">🔗 PC 에이전트 연결</h3>
+                <div class="agent-connection-panel">
+                    <div class="connection-status disconnected" id="connectionStatus" data-i18n="connectionStatusDisconnected">
+                        ❌ PC 에이전트와 연결되지 않음
+                    </div>
+                </div>
+            </div>
+                        <!-- 에이전트 다운로드 -->
+            <div class="panel-section">
+                <h3 data-i18n="sectionTitleDownload">⬇️ 에이전트 다운로드</h3>
+                <div class="download-selector">
+                    <select id="agentOsSelect">
+                        <option value="win" data-i18n="agentOsWin">Windows 용</option>
+                        <option value="mac" data-i18n="agentOsMac">macOS 용</option>
+                        <option value="linux" data-i18n="agentOsLinux">Linux 용</option>
+                    </select>
+                    <button id="downloadAgentBtn" class="icon-btn" data-i18n="downloadAgentBtn_title" title="에이전트 다운로드">💾</button>
+                </div>
+            </div>
+                        <!-- 실시간 로그 콘솔 -->
+            <div class="panel-section">
+                <h3 data-i18n="consoleHeader">📺 실시간 로그</h3>
+                <div class="console-panel">
+                    <div class="console-output" id="consoleOutput"></div>
+                </div>
+            </div>
+        </div>
+        
+   </div>
+
+    <!-- Blockly 툴박스 -->
+    <xml xmlns="https://developers.google.com/blockly/xml" id="toolbox" style="display: none"></xml>
+
+    <script>
+        // PC 에이전트 상태 업데이트 함수 (단순화됨)
+        function updateAgentStatus(isConnected) {
+            const connectionStatus = document.getElementById('connectionStatus');
+            const portSelect = document.getElementById('portSelect');
+            const refreshPortsBtn = document.getElementById('refreshPortsBtn');
+            const compileBtn = document.getElementById('compileBtn');
+            const uploadBtn = document.getElementById('uploadBtn');
+            
+            // 연결 상태 메시지 업데이트
+            if (connectionStatus) {
+                if (isConnected) {
+                    // 번역 시스템 사용
+                    const connectedText = window.IDEI18n ? 
+                        window.IDEI18n.getMsg('connectionStatusConnected', '✅ PC 에이전트와 연결됨') : 
+                        '✅ PC 에이전트와 연결됨';
+                    connectionStatus.textContent = connectedText;
+                    connectionStatus.className = 'connection-status connected';
+                    connectionStatus.setAttribute('data-i18n', 'connectionStatusConnected');
+                } else {
+                    // 번역 시스템 사용
+                    const disconnectedText = window.IDEI18n ? 
+                        window.IDEI18n.getMsg('connectionStatusDisconnected', '❌ PC 에이전트와 연결되지 않음') : 
+                        '❌ PC 에이전트와 연결되지 않음';
+                    connectionStatus.textContent = disconnectedText;
+                    connectionStatus.className = 'connection-status disconnected';
+                    connectionStatus.setAttribute('data-i18n', 'connectionStatusDisconnected');
+                }
+            }
+            
+            // 버튼 활성화/비활성화
+            if (portSelect) portSelect.disabled = !isConnected;
+            if (refreshPortsBtn) refreshPortsBtn.disabled = !isConnected;
+            if (compileBtn) compileBtn.disabled = !isConnected;
+            if (uploadBtn) uploadBtn.disabled = !isConnected;
+        }
+        
+        // 전역 함수로 등록
+        window.updateAgentStatus = updateAgentStatus;
+        
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            updateAgentStatus(false);
+        });
+    </script>
+
+    <script>
+    // 에이전트 다운로드 기능
+    document.addEventListener('DOMContentLoaded', function() {
+        // 다운로드 파일 정보
+        const downloadFiles = {
+            win: {
+                url: 'https://www.gorillacell.kr/webide/download_agent/Arduino Local Agent 2.2 Setup 2.2.0.exe',
+                filename: 'Arduino Local Agent 2.2 Setup 2.2.0.exe'
+            },
+            mac: {
+                url: 'https://www.gorillacell.kr/webide/download_agent/Arduino Local Agent.dmg', 
+                filename: 'Arduino Local Agent.dmg'
+            },
+            linux: {
+                url: 'https://www.gorillacell.kr/webide/download_agent/Arduino Local Agent.tar.gz',
+                filename: 'Arduino Local Agent.tar.gz'
+            }
+        };
+
+        const osSelect = document.getElementById('agentOsSelect');
+        const downloadBtn = document.getElementById('downloadAgentBtn');
+
+        function downloadFile(url, filename) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.style.display = 'none';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        if (downloadBtn && osSelect) {
+            downloadBtn.addEventListener('click', function() {
+                const selectedOs = osSelect.value;
+                const fileInfo = downloadFiles[selectedOs];
+                
+                if (fileInfo) {
+                    downloadFile(fileInfo.url, fileInfo.filename);
+                    
+                    const originalText = downloadBtn.innerHTML;
+                    downloadBtn.innerHTML = '⬇️ 다운로드 중...';
+                    downloadBtn.disabled = true;
+                    
+                    setTimeout(() => {
+                        downloadBtn.innerHTML = originalText;
+                        downloadBtn.disabled = false;
+                    }, 2000);
+                }
+            });
+        }
+
+        if (osSelect && downloadBtn) {
+            osSelect.addEventListener('change', function() {
+                const selectedOs = this.value;
+                const osNames = {
+                    win: 'Windows',
+                    mac: 'macOS', 
+                    linux: 'Linux'
+                };
+                downloadBtn.title = `${osNames[selectedOs]} 용 에이전트 다운로드`;
+            });
+        }
+    });
+    </script>
+
+    <!-- 모듈화된 JavaScript 파일들 (RTL 대응 완료) -->
+    <script src="js/ide-utils.js"></script>
+    <script src="js/ide-i18n.js"></script>
+    <script src="js/ide-editors.js"></script>
+    <script src="js/ide-file-manager.js"></script>
+    <script src="js/ide-server-comm.js"></script>
+    <script src="js/ide-core.js"></script>
+</body>
+</html>
