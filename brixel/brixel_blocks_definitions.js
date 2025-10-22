@@ -5134,7 +5134,7 @@ const blockDefinitionsPart13 = [
         "nextStatement": null,
         "style": "event_blocks",
         "tooltip": Blockly.Msg.BKY_CUSTOM_AD_BLOCK_TOOLTIP || "Custom advertisement block.",
-        "helpUrl": "https://www.gorillacell.kr/webide/guide/brixel_guide.html"
+        "helpUrl": "https://brixeleditor.github.io/guide/brixel_guide.html"
     },
     {
         "type": "go_to_ai_robot_scratch",
